@@ -1,0 +1,13 @@
+{
+	"configurations": [
+		{
+			"name": "Start",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "main.py",
+			"args": ["--verbosity=debug", "--max_depth=4", "--cached_only=none"],
+			"envFile": "${workspaceFolder}/.env",
+			"console": "integratedTerminal"
+		}
+	]
+}
