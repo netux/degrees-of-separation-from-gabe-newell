@@ -11,6 +11,7 @@ import httpx
 import logging
 import sqlite3
 import argparse
+import functools
 import dataclasses
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -74,6 +75,34 @@ LOGGING_VERBOSITY_MAP = {
 	"debug": logging.DEBUG
 }
 
+def flatten(value: list):
+	def _flatten(current: list, item: list):
+		if any(isinstance(item, typ) for typ in (list, set)):
+			current.extend(item)
+		else:
+			current.append(item)
+		return current
+
+	return list(functools.reduce(_flatten, value, []))
+
+
+def parse_targets(value: list[str]):
+	special_values = {
+		"GabeNewell": gaben_steam_id,
+		"OtherValveEmployees": all_public_valve_employees_steam_ids
+	}
+
+	value = [item.split(",") for item in value]
+	value = flatten(value)
+
+	for i, item in enumerate(value):
+		if item in special_values:
+			value[i] = special_values[item]
+
+	value = flatten(value)
+
+	return value
+
 class FindError(Exception):
 	steam_id: str
 	response: httpx.Response | Literal["<from cache>"] | None
@@ -110,6 +139,12 @@ if __name__ == "__main__":
 			default=2
 		)
 		argparser.add_argument(
+			"--targets",
+			help="Who to look for (Steam IDs). Default: GabeNewell,OtherValveEmployees",
+			default=["GabeNewell", "OtherValveEmployees"],
+			nargs=argparse.ONE_OR_MORE
+		)
+		argparser.add_argument(
 			"--request_delay",
 			type=float,
 			help="Time between request batches, in seconds. Default: 200 requests / 5 minutes (Steam recommended)",
@@ -135,6 +170,8 @@ if __name__ == "__main__":
 		)
 		args = argparser.parse_args()
 
+		target_steam_ids = parse_targets(args.targets)
+
 		logging.basicConfig(
 			format="%(asctime)s %(levelname)s: %(message)s"
 		)
@@ -159,7 +196,7 @@ if __name__ == "__main__":
 
 			response = None
 			try:
-				if steam_id in all_valve_employees_steam_ids:
+				if steam_id in target_steam_ids:
 					previous_find = finds.get(steam_id, None)
 
 					if steam_id == gaben_steam_id:

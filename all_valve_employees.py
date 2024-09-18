@@ -107,8 +107,3 @@ all_public_valve_employees_steam_ids = {
 	"76561199499120513",
 	"76561199571838040"
 }
-
-all_valve_employees_steam_ids = {
-	gaben_steam_id,
-	*all_public_valve_employees_steam_ids
-}
