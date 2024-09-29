@@ -22,7 +22,7 @@ load_dotenv()
 from all_valve_employees import *
 
 if TYPE_CHECKING:
-	from typing import Iterable
+	from typing import Iterable, TextIO
 
 if sys.version_info >= (3, 12): # Thanks https://realpython.com/how-to-split-a-python-list-into-chunks/#custom-implementation-of-batched !
 	from itertools import batched
@@ -103,6 +103,12 @@ def parse_targets(value: list[str]):
 
 	return value
 
+class LoadArgsFromFile(argparse.Action): # Thanks https://stackoverflow.com/a/27434050 !
+	def __call__(self, parser, namespace, values: Path, option_string=None):
+		if values:
+			with values.open("r", encoding="utf-8") as f:
+				parser.parse_args(f.read().split(), namespace)
+
 class FindError(Exception):
 	steam_id: str
 	response: httpx.Response | Literal["<from cache>"] | None
@@ -168,6 +174,12 @@ if __name__ == "__main__":
 			type=lambda k: LOGGING_VERBOSITY_MAP[k],
 			default=logging.NOTSET
 		)
+		argparser.add_argument(
+			"--args_file",
+			help="Path to text file with arguments to load. Useful for debugging this script in VSCode",
+			type=Path,
+			action=LoadArgsFromFile
+		)
 		args = argparser.parse_args()
 
 		target_steam_ids = parse_targets(args.targets)
@@ -178,6 +190,8 @@ if __name__ == "__main__":
 
 		logger = logging.getLogger("gaben")
 		logger.setLevel(args.verbosity)
+
+		logger.debug(f"Running with arguments:\n{args._get_kwargs()!r}")
 
 
 		finds: dict[str, Find] = {}

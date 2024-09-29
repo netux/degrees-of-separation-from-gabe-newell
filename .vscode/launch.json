@@ -1,11 +1,11 @@
 {
 	"configurations": [
 		{
-			"name": "Start",
+			"name": "Start with args from file",
 			"type": "debugpy",
 			"request": "launch",
-			"program": "main.py",
-			"args": ["--verbosity=debug", "--max_depth=4", "--cached_only=none"],
+			"program": "degrees-of-separation-from-gabe-newell.py",
+			"args": ["--args_file", "${workspaceFolder}/debug-args.txt"],
 			"envFile": "${workspaceFolder}/.env",
 			"console": "integratedTerminal"
 		}

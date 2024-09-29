@@ -1,0 +1,4 @@
+--verbosity=debug
+--max_depth=3
+--request_delay=2.5
+--simultaneous_requests=1
