@@ -49,5 +49,22 @@ Requires Python 3.10+ with sqlite3.
     * Increasing max depth expontentially increases the amount of time the script takes to run.
       I recommend keeping it low to check more quickly if you have any devs in close proximity to you. And if not, then increase it as much as you'd like.
 
-      The [six handshake rule](https://en.wikipedia.org/wiki/Six_degrees_of_separation) says that people are, at most, 6 degrees of separation from anyone else in the world. Increasing max depth above 6 is not necessary.
-    * `verbosity=debug` is nice to see the progress so far, but depending on how fast you are going, it may actually slow you down. Consider using `verbosity=info`
+      The [six handshake rule](https://en.wikipedia.org/wiki/Six_degrees_of_separation) says that people are, at most, 6 degrees of separation from anyone else in the world. Increasing max depth above 6 is probably very futile.
+    * `verbosity=debug` is nice to see the progress so far, but depending on how fast you are going, it may actually slow you down. Consider using `verbosity=info` until you have every friend list cached.
+
+## Debugging
+
+### VSCode
+
+1. Run setup steps from [Usage](#usage).
+
+2. Install the [recommended extensions](./.vscode/extensions.json)
+
+3. Setup debug arguments
+
+    ```sh
+    cp debug-args.txt.sample debug-args.txt
+    # open .env in your favorite text editor. add the arguments you would pass to degrees-of-separation-from-gabe-newell.py, one line per argument
+    ```
+
+4. Launch the "Start with args from file" [launch task](./.vscode/launch.json)
