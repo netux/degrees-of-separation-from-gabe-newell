@@ -274,14 +274,48 @@ if __name__ == "__main__":
 					logger.debug(f"Getting friends from Steam user with ID {steam_id} ({pretty_friends_left}) (depth={depth}) (skipped because of --cached_only)")
 					return
 				else:
-					logger.debug(f"Getting friends from Steam user with ID {steam_id} ({pretty_friends_left}) (depth={depth})")
+					errors_count = 0
+					while True:
+						if errors_count >= 5:
+							logger.error(f"Woah there, we've got {errors_count} errors from calling the Steam API")
 
-					await asyncio.sleep(args.request_delay)
+							# That's a lot of errors. Lets wait for the user to assess everything is fine, and whether we should continue or not.
+							if input("Make sure everything is fine from your side.\nAll good? Ok then, shall we continue? [y/N]: ").lower() != "y":
+								sys.exit(1)
 
-					response = await client.get("/ISteamUser/GetFriendList/v1", params={
-						"steamid": steam_id
-					})
-					response_body = response.json()
+						logger.debug(f"Getting friends from Steam user with ID {steam_id} ({pretty_friends_left}) (depth={depth})")
+
+						await asyncio.sleep(args.request_delay)
+
+						try:
+							response = await client.get("/ISteamUser/GetFriendList/v1", params={
+								"steamid": steam_id
+							})
+						except httpx.ConnectTimeout as ex:
+							logger.debug(f"\tGot a connection timeout. Retrying in 5 seconds...")
+							await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
+
+							errors_count += 1
+							continue # retry
+						except httpx.ReadTimeout as ex:
+							logger.debug(f"\tGot a read timeout. Retrying in 5 seconds...")
+							await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
+
+							errors_count += 1
+							continue # retry
+						else:
+							if response.status_code == 502: # Bad Gateway
+								# Steam API is funny, and might fail with a Bad Gateway sometimes
+
+								logger.debug(f"\tReceived a Bad Gateway response. Retrying in 5 seconds...")
+								await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
+
+								errors_count += 1
+
+								continue # retry
+
+							response_body = response.json()
+							break
 
 					if "friendslist" in response_body:
 						raw_friend_list = response_body["friendslist"]["friends"]
