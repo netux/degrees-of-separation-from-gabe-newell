@@ -13,6 +13,7 @@ import sqlite3
 import argparse
 import functools
 import dataclasses
+from math import floor
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -287,34 +288,43 @@ if __name__ == "__main__":
 
 						await asyncio.sleep(args.request_delay)
 
+						err = None
 						try:
 							response = await client.get("/ISteamUser/GetFriendList/v1", params={
 								"steamid": steam_id
 							})
-						except httpx.ConnectTimeout as ex:
-							logger.debug(f"\tGot a connection timeout. Retrying in 5 seconds...")
-							await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
+						except Exception as err2:
+							err = err2
+						else:
+							if floor(response.status_code / 100) == 5: # 5xx
+								# Steam API is funny, and might fail with Bad Gateway or Service Unavailable sometimes
+								err = response.status_code
 
-							errors_count += 1
-							continue # retry
-						except httpx.ReadTimeout as ex:
-							logger.debug(f"\tGot a read timeout. Retrying in 5 seconds...")
+						if not err:
+							try:
+								response_body = response.json()
+							except Exception as err2:
+								err = err2
+
+						if err:
+							match err:
+								case httpx.ConnectTimeout():
+									response_err_pretty = "Got a connection timeout"
+								case httpx.ReadTimeout():
+									response_err_pretty = "Got a read timeout"
+								case 502:
+									response_err_pretty = "Received a Bad Gateway response"
+								case 503:
+									response_err_pretty = "Received a Bad Gateway response"
+								case _:
+									response_err_pretty = f"Caught an error: {err!r}"
+
+							logger.debug(f"\t{response_err_pretty}. Retrying in 5 seconds...")
 							await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
 
 							errors_count += 1
 							continue # retry
 						else:
-							if response.status_code == 502: # Bad Gateway
-								# Steam API is funny, and might fail with a Bad Gateway sometimes
-
-								logger.debug(f"\tReceived a Bad Gateway response. Retrying in 5 seconds...")
-								await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
-
-								errors_count += 1
-
-								continue # retry
-
-							response_body = response.json()
 							break
 
 					if "friendslist" in response_body:
@@ -369,10 +379,10 @@ if __name__ == "__main__":
 
 						if any_exception:
 							sys.exit(1)
-			except SystemExit as ex:
-				raise ex
-			except Exception as ex:
-				raise FindError(steam_id, response) from ex
+			except SystemExit as err:
+				raise err
+			except Exception as err:
+				raise FindError(steam_id, response) from err
 
 		async with httpx.AsyncClient(
 			base_url="https://api.steampowered.com",
