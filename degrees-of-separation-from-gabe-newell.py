@@ -312,6 +312,8 @@ if __name__ == "__main__":
 									response_err_pretty = "Got a connection timeout"
 								case httpx.ReadTimeout():
 									response_err_pretty = "Got a read timeout"
+								case httpx.ReadError():
+									response_err_pretty = "Got a read error"
 								case 502:
 									response_err_pretty = "Received a Bad Gateway response"
 								case 503:
@@ -319,7 +321,7 @@ if __name__ == "__main__":
 								case _:
 									response_err_pretty = f"Caught an error: {err!r}"
 
-							logger.debug(f"\t{response_err_pretty}. Retrying in 5 seconds...")
+							logger.debug(f"{response_err_pretty}. Retrying in 5 seconds...")
 							await asyncio.sleep(5) # lets wait a bit for it to recover, hopefully
 
 							errors_count += 1
